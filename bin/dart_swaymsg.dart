@@ -1,36 +1,42 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:args/args.dart';
 import 'package:i3_ipc/i3_ipc.dart';
 import 'package:on_exit/init.dart';
 
-const String dartSwayMsgVersion = "1.0";
+const String dartSwayMsgVersion = '2.0';
 
-const String usage = "Usage: wf-msg [options] [message]\n"
-    "\n"
-    "  -h, --help             Show help message and quit.\n"
-    "  -m, --monitor          Monitor until killed (-t SUBSCRIBE only)\n"
-    "  -p, --pretty           Use pretty output even when not using a tty\n"
-    "  -q, --quiet            Be quiet.\n"
-    "  -r, --raw              Use raw output even if using a tty\n"
-    "  -s, --socket <socket>  Use the specified socket.\n"
-    "  -t, --type <type>      Specify the message type.\n"
-    "  -v, --version          Show the version number and quit.\n"
-    "  -b, --big-endian       Use big endian to communicate with the server (Default: Little endian).\n";
+const String usage = 'Usage: wf-msg [options] [message]\n'
+    '\n'
+    '  -h, --help             Show help message and quit.\n'
+    '  -m, --monitor          Monitor until killed (-t SUBSCRIBE only)\n'
+    '  -p, --pretty           Use pretty output even when not using a tty\n'
+    '  -q, --quiet            Be quiet.\n'
+    '  -r, --raw              Use raw output even if using a tty\n'
+    '  -s, --socket <socket>  Use the specified socket.\n'
+    '  -t, --type <type>      Specify the message type.\n'
+    '  -v, --version          Show the version number and quit.\n';
 
-bool parserDefaultValueForFlag(String name,
-    {required String? abbr, required List<String> args}) {
+bool parserDefaultValueForFlag(
+  String name, {
+  required String? abbr,
+  required List<String> args,
+}) {
   return (args.firstWhere(
-          (arg) => arg == "--$name" || (abbr != null ? arg == "-$abbr" : false),
-          orElse: () => jsonEncode(null)) !=
+        (arg) => arg == '--$name' || (abbr != null && arg == '-$abbr'),
+        orElse: () => jsonEncode(null),
+      ) !=
       jsonEncode(null));
 }
 
-void parserSetFlag(String name,
-    {required ArgParser parser, String? abbr, required List<String> args}) {
+void parserSetFlag(
+  String name, {
+  required ArgParser parser,
+  required List<String> args,
+  String? abbr,
+}) {
   parser.addFlag(
     name,
     abbr: abbr,
@@ -39,9 +45,9 @@ void parserSetFlag(String name,
 }
 
 bool parserIsFlagSet(String name, {required ArgParser parser}) {
-  Option? option = parser.findByNameOrAlias(name);
+  final option = parser.findByNameOrAlias(name);
   final value = option?.valueOrDefault(null);
-  return (value != null && value is bool && value == true);
+  return value != null && value is bool && value == true;
 }
 
 void help() {
@@ -50,28 +56,26 @@ void help() {
 }
 
 void version() {
-  stdout.writeln("dswaymsg version $dartSwayMsgVersion");
+  stdout.writeln('dswaymsg version $dartSwayMsgVersion');
   exit(0);
 }
 
-Future<void> main(List<String> args) async {
-  bool quiet = false;
-  bool raw = false;
-  bool monitor = false;
+void main(List<String> args) {
+  var quiet = false;
+  var raw = !stdout.hasTerminal;
+  var monitor = false;
   String? socketPath;
   String? cmdtype;
-  Endian endian = Endian.little;
 
-  final parser = ArgParser();
-  parser.addOption('socket', abbr: 's');
-  parser.addOption('type', abbr: 't');
+  final parser = ArgParser()
+    ..addOption('socket', abbr: 's')
+    ..addOption('type', abbr: 't');
   parserSetFlag('monitor', abbr: 'm', parser: parser, args: args);
   parserSetFlag('pretty', abbr: 'p', parser: parser, args: args);
   parserSetFlag('quiet', abbr: 'q', parser: parser, args: args);
   parserSetFlag('raw', abbr: 'r', parser: parser, args: args);
   parserSetFlag('help', abbr: 'h', parser: parser, args: args);
   parserSetFlag('version', abbr: 'v', parser: parser, args: args);
-  parserSetFlag('big-endian', abbr: 'b', parser: parser, args: args);
 
   ArgResults results;
   try {
@@ -82,119 +86,124 @@ Future<void> main(List<String> args) async {
   }
 
   for (var i = 0; i < results.options.length; i++) {
-    String name = results.options.elementAt(i);
+    final name = results.options.elementAt(i);
 
     switch (name) {
-      case 'monitor': // Monitor
-        if (parserIsFlagSet(name, parser: parser)) {
-          monitor = true;
+      case 'monitor':
+        {
+          // Monitor
+          if (parserIsFlagSet(name, parser: parser)) {
+            monitor = true;
+          }
+          break;
         }
-        break;
 
-      case 'pretty': // Pretty
-        if (parserIsFlagSet(name, parser: parser)) {
-          raw = false;
+      case 'pretty':
+        {
+          // Pretty
+          if (parserIsFlagSet(name, parser: parser)) {
+            raw = false;
+          }
+          break;
         }
-        break;
-
-      case 'quiet': // Quiet
-        if (parserIsFlagSet(name, parser: parser)) {
-          quiet = true;
+      case 'quiet':
+        {
+          // Quiet
+          if (parserIsFlagSet(name, parser: parser)) {
+            quiet = true;
+          }
+          break;
         }
-        break;
 
-      case 'raw': // Raw
-        if (parserIsFlagSet(name, parser: parser)) {
-          raw = true;
+      case 'raw':
+        {
+          // Raw
+          if (parserIsFlagSet(name, parser: parser)) {
+            raw = true;
+          }
+          break;
         }
-        break;
 
-      case 'socket': // Socket
-        socketPath = results["socket"];
-        break;
+      case 'socket':
+        {
+          // Socket
+          socketPath = results['socket'] as String?;
+          break;
+        }
 
-      case 'type': // Type
-        cmdtype = results["type"];
-        break;
+      case 'type':
+        {
+          // Type
+          cmdtype = results['type'] as String?;
+          break;
+        }
 
       case 'version':
-        if (parserIsFlagSet(name, parser: parser)) {
-          version();
+        {
+          if (parserIsFlagSet(name, parser: parser)) {
+            version();
+          }
+          break;
         }
-        break;
-
-      case 'big-endian':
-        if (parserIsFlagSet(name, parser: parser)) {
-          endian = Endian.big;
-        }
-        break;
 
       case 'help':
-        if (parserIsFlagSet(name, parser: parser)) {
-          help();
+        {
+          if (parserIsFlagSet(name, parser: parser)) {
+            help();
+          }
+          break;
         }
-        break;
 
       default:
         help();
     }
   }
 
-  cmdtype ??= "command";
+  cmdtype ??= 'command';
 
-  if (socketPath == null) {
-    socketPath = IPCClient.getSocketpath();
-    if (socketPath == null) {
-      if (quiet) {
-        exit(1);
-      }
-      IPCClient.clientAbort(null, "Unable to retrieve socket path");
-    }
-  }
-
-  var type = IPCPayloadType.ipcCommand;
+  var type = IpcPayloadType.ipcCommand;
 
   cmdtype = cmdtype.toLowerCase();
 
-  if (cmdtype == "command") {
-    type = IPCPayloadType.ipcCommand;
-  } else if (cmdtype == "get_workspaces") {
-    type = IPCPayloadType.ipcGetWorkspaces;
-  } else if (cmdtype == "get_seats") {
-    type = IPCPayloadType.ipcGetSeats;
-  } else if (cmdtype == "get_inputs") {
-    type = IPCPayloadType.ipcGetInputs;
-  } else if (cmdtype == "get_outputs") {
-    type = IPCPayloadType.ipcGetOutputs;
-  } else if (cmdtype == "get_tree") {
-    type = IPCPayloadType.ipcGetTree;
-  } else if (cmdtype == "get_marks") {
-    type = IPCPayloadType.ipcGetMarks;
-  } else if (cmdtype == "get_bar_config") {
-    type = IPCPayloadType.ipcGetBarConfig;
-  } else if (cmdtype == "get_version") {
-    type = IPCPayloadType.ipcGetVersion;
-  } else if (cmdtype == "get_binding_modes") {
-    type = IPCPayloadType.ipcGetBindingModes;
-  } else if (cmdtype == "get_binding_state") {
-    type = IPCPayloadType.ipcGetBindingState;
-  } else if (cmdtype == "get_config") {
-    type = IPCPayloadType.ipcGetConfig;
-  } else if (cmdtype == "send_tick") {
-    type = IPCPayloadType.ipcSendTick;
-  } else if (cmdtype == "subscribe") {
-    type = IPCPayloadType.ipcSubscribe;
+  if (cmdtype == 'command') {
+    type = IpcPayloadType.ipcCommand;
+  } else if (cmdtype == 'get_workspaces') {
+    type = IpcPayloadType.ipcGetWorkspaces;
+  } else if (cmdtype == 'get_seats') {
+    type = IpcPayloadType.ipcGetSeats;
+  } else if (cmdtype == 'get_inputs') {
+    type = IpcPayloadType.ipcGetInputs;
+  } else if (cmdtype == 'get_outputs') {
+    type = IpcPayloadType.ipcGetOutputs;
+  } else if (cmdtype == 'get_tree') {
+    type = IpcPayloadType.ipcGetTree;
+  } else if (cmdtype == 'get_marks') {
+    type = IpcPayloadType.ipcGetMarks;
+  } else if (cmdtype == 'get_bar_config') {
+    type = IpcPayloadType.ipcGetBarConfig;
+  } else if (cmdtype == 'get_version') {
+    type = IpcPayloadType.ipcGetVersion;
+  } else if (cmdtype == 'get_binding_modes') {
+    type = IpcPayloadType.ipcGetBindingModes;
+  } else if (cmdtype == 'get_binding_state') {
+    type = IpcPayloadType.ipcGetBindingState;
+  } else if (cmdtype == 'get_config') {
+    type = IpcPayloadType.ipcGetConfig;
+  } else if (cmdtype == 'send_tick') {
+    type = IpcPayloadType.ipcSendTick;
+  } else if (cmdtype == 'subscribe') {
+    type = IpcPayloadType.ipcSubscribe;
   } else {
     if (quiet) {
       exit(1);
     }
-
-    IPCClient.clientAbort(null, "Unknown message type $cmdtype");
+    stderr.writeln('Unknown message type $cmdtype');
+    exit(1);
   }
 
-  if (monitor && (type != IPCPayloadType.ipcSubscribe)) {
+  if (monitor && (type != IpcPayloadType.ipcSubscribe)) {
     if (!quiet) {
-      stderr.writeln("Monitor can only be used with -t SUBSCRIBE");
+      stderr.writeln('Monitor can only be used with -t SUBSCRIBE');
     }
 
     exit(1);
@@ -206,72 +215,77 @@ Future<void> main(List<String> args) async {
     command = StringTools.joinArgs(results.rest);
   }
 
-  int ret = 0;
-  final controller = (type == IPCPayloadType.ipcSubscribe)
-      ? StreamController<IPCResponse?>.broadcast()
-      : StreamController<IPCResponse?>();
-  IPCClient.singleCommand(type,
-      payload: command ?? "",
-      controller: controller,
-      endian: endian,
-      socketPath: socketPath);
-  final stream = (type == IPCPayloadType.ipcSubscribe)
-      ? controller.stream.asBroadcastStream()
-      : controller.stream;
+  final i3CommandRepository = I3IpcCommandRepository();
+  final bloc = I3ClientBloc(i3CommandRepository: i3CommandRepository);
+  StreamSubscription<I3ClientBlocState>? subscription;
+  Future.microtask(() async {
+    bloc.add(
+      I3IpcExecuteRequested(
+        type: type,
+        payload: command ?? '',
+        socketPath: socketPath,
+      ),
+    );
 
-  final resp = await stream.first;
-  if (type != IPCPayloadType.ipcSubscribe) {
-    controller.close();
-  }
-  dynamic result = resp?.toJson();
+    if (type != IpcPayloadType.ipcSubscribe) {
+      final value = await bloc.stream.first;
 
-  if (result == null || result.length == 0) {
-    if (!quiet) {
-      final String err = resp != null ? resp.toString() : "";
-      stderr.writeln("failed to parse payload as json: $err");
-    }
+      final response = value.response;
+      final payload = response?.payload;
 
-    ret = 1;
-  } else {
-    if (!Status.success(result, true)) {
-      ret = 2;
-    }
-
-    if (!quiet && ((type != IPCPayloadType.ipcSubscribe) || (ret != 0))) {
-      if (raw) {
-        print(resp);
-      } else {
-        PrettyPrinter.prettyPrint(type, result);
-      }
-    }
-  }
-
-  if ((type == IPCPayloadType.ipcSubscribe) && (ret == 0)) {
-    stdout.writeln("Monitoring. ");
-
-    stream.listen((reply) {
-      dynamic obj = reply?.toJson();
-      if (obj == null) {
+      if (payload == null) {
         if (!quiet) {
-          stderr.writeln("failed to parse payload as json: $resp");
+          stderr.writeln('failed to get payload');
         }
 
-        ret = 1;
-        controller.close();
-        return;
-      } else if (quiet) {
-        //
+        await bloc.close();
+        i3CommandRepository.close();
+        exit(1);
       } else {
-        if (raw) {
-          print(obj);
-        } else {
-          print(PrettyPrinter.prettyJson(obj));
+        if (!quiet) {
+          if (raw) {
+            stdout.writeln(PrettyPrinter.rawPretty(jsonDecode(payload)));
+          } else if (response != null) {
+            PrettyPrinter.prettyPrint(type, response);
+          }
         }
       }
-    });
 
-    onExit(() {
-      controller.close();
-    });
-  }
+      await bloc.close();
+      i3CommandRepository.close();
+      exit(0);
+    } else {
+      stdout.writeln('Monitoring. ');
+
+      subscription = bloc.stream.listen((value) async {
+        final response = value.response;
+        final payload = response?.payload;
+
+        if (payload == null) {
+          if (!quiet) {
+            stderr.writeln('failed to get payload');
+          }
+
+          await bloc.close();
+          i3CommandRepository.close();
+          exit(1);
+        } else if (quiet) {
+          //
+        } else {
+          if (raw) {
+            stdout.writeln(payload);
+          } else {
+            stdout.writeln(PrettyPrinter.rawPretty(jsonDecode(payload)));
+          }
+          await stdout.flush();
+        }
+      });
+    }
+  });
+
+  onExit(() async {
+    await subscription?.cancel();
+    await bloc.close();
+    i3CommandRepository.close();
+  });
 }
