@@ -277,7 +277,6 @@ void main(List<String> args) {
           } else {
             stdout.writeln(PrettyPrinter.rawPretty(jsonDecode(payload)));
           }
-          await stdout.flush();
         }
       });
     }
