@@ -1,6 +1,6 @@
 name: dart_swaymsg
 description: A swaymsg clone written in dart.
-version: 2.0.5
+version: 2.0.6
 repository: https://github.com/AR-CADE/dart_swaymsg
 publish_to: none
 
