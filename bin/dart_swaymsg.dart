@@ -212,7 +212,7 @@ void main(List<String> args) {
   String? command;
 
   if (results.rest.isNotEmpty) {
-    command = StringTools.joinArgs(results.rest);
+    command = results.rest.join(' ');
   }
 
   final i3CommandRepository = I3IpcCommandRepository();
