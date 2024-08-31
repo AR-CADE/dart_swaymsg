@@ -74,10 +74,10 @@ packages:
     dependency: transitive
     description:
       name: coverage
-      sha256: "7b594a150942e0d3be99cd45a1d0b5caff27ba5a27f292ed8e8d904ba3f167b5"
+      sha256: c1fb2dce3c0085f39dc72668e85f8e0210ec7de05345821ff58530567df345a5
       url: "https://pub.dev"
     source: hosted
-    version: "1.9.1"
+    version: "1.9.2"
   crypto:
     dependency: transitive
     description:
@@ -147,10 +147,10 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "78a44a1b91e699095d96d48ce7aae7a5c012f994"
+      resolved-ref: da3a04b3d5fb7b7286d8e12db771e4aa388ec019
       url: "https://github.com/AR-CADE/i3_ipc.git"
     source: git
-    version: "2.2.1"
+    version: "2.2.2"
   io:
     dependency: transitive
     description:
