@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:bloc/bloc.dart';
 import 'package:i3_ipc/i3_ipc.dart';
 import 'package:on_exit/init.dart';
 
@@ -58,6 +59,39 @@ void help() {
 void version() {
   stdout.writeln('dswaymsg version $dartSwayMsgVersion');
   exit(0);
+}
+
+class I3ClientBlocObserver extends BlocObserver {
+  const I3ClientBlocObserver({this.quiet = false});
+
+  final bool quiet;
+
+  @override
+  void onError(BlocBase<dynamic> bloc, Object error, StackTrace stackTrace) {
+    super.onError(bloc, error, stackTrace);
+    if (!quiet) {
+      if (bloc is I3ClientBloc) {
+        if (error is SocketException && error.osError?.errorCode == 2) {
+          stderr.writeln(
+            'Error: Unable to retrieve socket path',
+          );
+          exit(-1);
+        }
+      }
+
+      stderr.writeln(
+        'Error: Unknown exception thrown',
+      );
+    }
+
+    exit(-1);
+  }
+
+  @override
+  void onClose(BlocBase<dynamic> bloc) {
+    super.onClose(bloc);
+    exit(0);
+  }
 }
 
 void main(List<String> args) {
@@ -215,9 +249,11 @@ void main(List<String> args) {
     command = results.rest.join(' ');
   }
 
+  Bloc.observer = I3ClientBlocObserver(quiet: quiet);
   final i3CommandRepository = I3IpcCommandRepository();
   final bloc = I3ClientBloc(i3CommandRepository: i3CommandRepository);
   StreamSubscription<I3ClientBlocState>? subscription;
+
   Future.microtask(() async {
     bloc.add(
       I3IpcExecuteRequested(
