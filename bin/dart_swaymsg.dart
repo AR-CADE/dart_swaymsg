@@ -114,7 +114,7 @@ void main(List<String> args) {
   ArgResults results;
   try {
     results = parser.parse(args);
-  } catch (e) {
+  } on ArgParserException catch (e) {
     stderr.writeln(e);
     exit(1);
   }
