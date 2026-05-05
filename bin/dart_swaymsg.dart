@@ -9,7 +9,8 @@ import 'package:on_exit/init.dart';
 
 const String dartSwayMsgVersion = '2.0';
 
-const String usage = 'Usage: wf-msg [options] [message]\n'
+const String usage =
+    'Usage: wf-msg [options] [message]\n'
     '\n'
     '  -h, --help             Show help message and quit.\n'
     '  -m, --monitor          Monitor until killed (-t SUBSCRIBE only)\n'
@@ -48,7 +49,7 @@ void parserSetFlag(
 bool parserIsFlagSet(String name, {required ArgParser parser}) {
   final option = parser.findByNameOrAlias(name);
   final value = option?.valueOrDefault(null);
-  return value != null && value is bool && value == true;
+  return value != null && value is bool && value;
 }
 
 void help() {
@@ -254,46 +255,19 @@ void main(List<String> args) {
   final bloc = I3ClientBloc(i3CommandRepository: i3CommandRepository);
   StreamSubscription<I3ClientBlocState>? subscription;
 
-  Future.microtask(() async {
-    bloc.add(
-      I3IpcExecuteRequested(
-        type: type,
-        payload: command ?? '',
-        socketPath: socketPath,
-      ),
-    );
+  unawaited(
+    Future.microtask(() async {
+      bloc.add(
+        I3IpcExecuteRequested(
+          type: type,
+          payload: command ?? '',
+          socketPath: socketPath,
+        ),
+      );
 
-    if (type != IpcPayloadType.ipcSubscribe) {
-      final value = await bloc.stream.first;
+      if (type != IpcPayloadType.ipcSubscribe) {
+        final value = await bloc.stream.first;
 
-      final response = value.response;
-      final payload = response?.payload;
-
-      if (payload == null) {
-        if (!quiet) {
-          stderr.writeln('failed to get payload');
-        }
-
-        await bloc.close();
-        i3CommandRepository.close();
-        exit(1);
-      } else {
-        if (!quiet) {
-          if (raw) {
-            stdout.writeln(PrettyPrinter.rawPretty(jsonDecode(payload)));
-          } else if (response != null) {
-            PrettyPrinter.prettyPrint(type, response);
-          }
-        }
-      }
-
-      await bloc.close();
-      i3CommandRepository.close();
-      exit(0);
-    } else {
-      stdout.writeln('Monitoring. ');
-
-      subscription = bloc.stream.listen((value) async {
         final response = value.response;
         final payload = response?.payload;
 
@@ -305,18 +279,47 @@ void main(List<String> args) {
           await bloc.close();
           i3CommandRepository.close();
           exit(1);
-        } else if (quiet) {
-          //
         } else {
-          if (raw) {
-            stdout.writeln(payload);
-          } else {
-            stdout.writeln(PrettyPrinter.rawPretty(jsonDecode(payload)));
+          if (!quiet) {
+            if (raw) {
+              stdout.writeln(PrettyPrinter.rawPretty(jsonDecode(payload)));
+            } else if (response != null) {
+              PrettyPrinter.prettyPrint(type, response);
+            }
           }
         }
-      });
-    }
-  });
+
+        await bloc.close();
+        i3CommandRepository.close();
+        exit(0);
+      } else {
+        stdout.writeln('Monitoring. ');
+
+        subscription = bloc.stream.listen((value) async {
+          final response = value.response;
+          final payload = response?.payload;
+
+          if (payload == null) {
+            if (!quiet) {
+              stderr.writeln('failed to get payload');
+            }
+
+            await bloc.close();
+            i3CommandRepository.close();
+            exit(1);
+          } else if (quiet) {
+            //
+          } else {
+            if (raw) {
+              stdout.writeln(payload);
+            } else {
+              stdout.writeln(PrettyPrinter.rawPretty(jsonDecode(payload)));
+            }
+          }
+        });
+      }
+    }),
+  );
 
   onExit(() async {
     await subscription?.cancel();
